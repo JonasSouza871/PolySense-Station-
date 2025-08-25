@@ -17,14 +17,20 @@ class BMP280:
         self.t_fine = 0
         self._initialize_sensor()
 
+    # Dentro da classe BMP280, no arquivo bmp280.py
+
     def _initialize_sensor(self):
         try:
             chip_id = self.i2c.readfrom_mem(self.addr, 0xD0, 1)[0]
-            if chip_id == 0x58: # BMP280
+            
+            # ⬇️ LINHA MODIFICADA ⬇️
+            # Aceita 0x58 (BMP280) OU 0x60 (BME280)
+            if chip_id in [0x58, 0x60]:
                 self._read_calibration_params()
+                # Configura o sensor (oversampling x1 para temp e press, modo normal)
                 self.i2c.writeto_mem(self.addr, 0xF4, b'\x27') 
                 self.is_ready = True
-                print("BMP280: Sensor de temperatura e pressão pronto.")
+                print(f"BMP/BME280: Sensor pronto (Chip ID: {hex(chip_id)}).")
             else:
                 print(f"BMP280: Erro ao inicializar. Chip ID inesperado: {hex(chip_id)}")
         except OSError as e:
