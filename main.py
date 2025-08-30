@@ -1,6 +1,7 @@
 # main.py - Datalogger Otimizado para Bateria (sem saídas no console/serial)
 # Todas as instruções 'print()' foram removidas para economizar energia.
 # O feedback é fornecido pelo display OLED e pelo LED da placa.
+# NOVO: Botão no pino 22 controla o display OLED para economizar energia
 
 # === IMPORTAÇÕES ===
 import os
@@ -23,6 +24,7 @@ from sdcard import SDCard
 # === CONFIGURAÇÕES GERAIS E DE HARDWARE ===
 led = Pin("LED", Pin.OUT)
 eject_button = Pin(3, Pin.IN, Pin.PULL_DOWN)
+display_button = Pin(22, Pin.IN, Pin.PULL_DOWN)  # <<< NOVO BOTÃO PARA CONTROLAR DISPLAY
 SDA1_PIN = 18
 SCL1_PIN = 19
 i2c1 = I2C(1, sda=Pin(SDA1_PIN), scl=Pin(SCL1_PIN), freq=100000)
@@ -45,7 +47,7 @@ except Exception as e:
 try:
     sd = SDCard(spi, cs)
     os.mount(sd, '/sd')
-    log_file_path = '/sd/datalogger_completo.csv'
+    log_file_path = '/sd/datalog_final.csv'
     csv_header = (
         "Timestamp,Temp_MPU6050_C,Temp_AHT20_C,Umid_AHT20_pct,"
         "Temp_BMP280_C,Press_BMP280_hPa,Temp_BMP180_C,Press_BMP180_hPa,"
@@ -82,11 +84,26 @@ screen = 0
 record_count = 0
 log_status = "Aguardando"
 start_time = time.ticks_ms()
+display_enabled = False  # <<< VARIÁVEL PARA CONTROLAR ESTADO DO DISPLAY
 
 # === LOOP PRINCIPAL ===
 while True:
     if eject_button.value() == 1:
         break
+
+    # <<< VERIFICA ESTADO DO BOTÃO DO DISPLAY
+    current_display_state = display_button.value() == 1
+    
+    # Se o estado do display mudou, atualiza a variável de controle
+    if current_display_state != display_enabled:
+        display_enabled = current_display_state
+        if not display_enabled:
+            # Quando o display é desabilitado, limpa a tela para economizar energia
+            try:
+                oled.fill(0)
+                oled.show()
+            except:
+                pass
 
     try:
         # 1. LEITURA DE TODOS OS SENSORES
@@ -149,48 +166,54 @@ while True:
         except Exception as e:
             log_status = "ERRO GRAVACAO"
 
-        # 4. EXIBIÇÃO NO DISPLAY OLED
-        oled.fill(0)
-        if screen == 0:
-            oled.text("--- TEMPS 1/2 ---", 5, 0)
-            oled.text(f"A(MPU):{tempA:.1f}C" if tempA is not None else "A:--", 0, 12)
-            oled.text(f"B(AHT):{tempB:.1f}C" if tempB is not None else "B:--", 0, 22)
-            oled.text(f"C(B280):{tempC:.1f}C" if tempC is not None else "C:--", 0, 32)
-            oled.text(f"D(B180):{tempD:.1f}C" if tempD is not None else "D:--", 0, 42)
-            oled.text(f"E(DS18):{tempE:.1f}C" if tempE is not None else "E:--", 0, 52)
-        elif screen == 1:
-            oled.text("--- TEMPS 2/2 ---", 5, 0)
-            oled.text(f"F(NTC) :{tempF:.1f}C" if tempF is not None else "F:--", 0, 12)
-            oled.text(f"G(DHT) :{tempG:.1f}C" if tempG is not None else "G:--", 0, 22)
-            oled.text(f"Umd(AHT):{umidA:.1f}%" if umidA is not None else "UmdA:--", 0, 32)
-            oled.text(f"Umd(DHT):{umidB:.1f}%" if umidB is not None else "UmdB:--", 0, 42)
-            oled.text(f"Prs(B280):{pressA:.0f}" if pressA is not None else "PrsA:--", 0, 52)
-        else:
-            oled.text("--- STATUS ---", 15, 0)
-            oled.text(f"Status: {log_status}", 0, 15)
-            oled.text(f"Registros: {record_count}", 0, 30)
-            uptime_s = time.ticks_diff(time.ticks_ms(), start_time) // 1000
-            mins = uptime_s // 60
-            hours = mins // 60
-            uptime_str = f"{hours:02d}:{(mins % 60):02d}:{(uptime_s % 60):02d}"
-            oled.text(f"Uptime: {uptime_str}", 0, 45)
-        oled.show()
-        screen = (screen + 1) % 3
+        # 4. EXIBIÇÃO NO DISPLAY OLED (APENAS SE O BOTÃO ESTIVER PRESSIONADO)
+        if display_enabled:  # <<< SÓ ATUALIZA O DISPLAY SE ESTIVER HABILITADO
+            try:
+                oled.fill(0)
+                if screen == 0:
+                    oled.text("--- TEMPS 1/2 ---", 5, 0)
+                    oled.text(f"A(MPU):{tempA:.1f}C" if tempA is not None else "A:--", 0, 12)
+                    oled.text(f"B(AHT):{tempB:.1f}C" if tempB is not None else "B:--", 0, 22)
+                    oled.text(f"C(B280):{tempC:.1f}C" if tempC is not None else "C:--", 0, 32)
+                    oled.text(f"D(B180):{tempD:.1f}C" if tempD is not None else "D:--", 0, 42)
+                    oled.text(f"E(DS18):{tempE:.1f}C" if tempE is not None else "E:--", 0, 52)
+                elif screen == 1:
+                    oled.text("--- TEMPS 2/2 ---", 5, 0)
+                    oled.text(f"F(NTC) :{tempF:.1f}C" if tempF is not None else "F:--", 0, 12)
+                    oled.text(f"G(DHT) :{tempG:.1f}C" if tempG is not None else "G:--", 0, 22)
+                    oled.text(f"Umd(AHT):{umidA:.1f}%" if umidA is not None else "UmdA:--", 0, 32)
+                    oled.text(f"Umd(DHT):{umidB:.1f}%" if umidB is not None else "UmdB:--", 0, 42)
+                    oled.text(f"Prs(B280):{pressA:.0f}" if pressA is not None else "PrsA:--", 0, 52)
+                else:
+                    oled.text("--- STATUS ---", 15, 0)
+                    oled.text(f"Status: {log_status}", 0, 15)
+                    oled.text(f"Registros: {record_count}", 0, 30)
+                    uptime_s = time.ticks_diff(time.ticks_ms(), start_time) // 1000
+                    mins = uptime_s // 60
+                    hours = mins // 60
+                    uptime_str = f"{hours:02d}:{(mins % 60):02d}:{(uptime_s % 60):02d}"
+                    oled.text(f"Uptime: {uptime_str}", 0, 45)
+                oled.show()
+                screen = (screen + 1) % 3
+            except Exception as e:
+                # Se houver erro no display, continua funcionando normalmente
+                pass
 
     except Exception as e:
         log_status = "ERRO FATAL"
-        # Mesmo com erro, tenta mostrar no display antes de parar
-        try:
-            oled.fill(0)
-            oled.text("--- ERRO FATAL ---", 0, 20)
-            oled.text("Reinicie o dispos.", 0, 40)
-            oled.show()
-        except:
-            pass # Se até o display falhar, não há o que fazer
+        # Mesmo com erro, tenta mostrar no display antes de parar (se estiver habilitado)
+        if display_enabled:
+            try:
+                oled.fill(0)
+                oled.text("--- ERRO FATAL ---", 0, 20)
+                oled.text("Reinicie o dispos.", 0, 40)
+                oled.show()
+            except:
+                pass # Se até o display falhar, não há o que fazer
         break 
         
     # 5. AGUARDAR PARA O PRÓXIMO CICLO
-    time.sleep(5)
+    time.sleep(30) # <<< ALTERAÇÃO REALIZADA AQUI
 
 # === FINALIZAÇÃO E EJEÇÃO SEGURA ===
 try:
