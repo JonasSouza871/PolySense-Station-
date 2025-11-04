@@ -86,6 +86,33 @@ Real weather data collected using this system is available on Kaggle:
 
 This dataset contains environmental measurements from September 2025 collected in Vitória da Conquista, Bahia, Brazil, demonstrating the system's real-world application and data quality.
 
+## Data Analysis
+
+The project includes comprehensive data analysis notebooks and visualizations for the collected weather data:
+
+### Basic Exploratory Data Analysis
+- **Notebook**: Statistical overview and distribution analysis
+- **Visualizations**:
+  - Sensor comparison plots (Temperature, Humidity, Pressure)
+  - Distribution histograms for all variables
+
+### Temporal Analysis
+Advanced time-series analysis organized by analysis type:
+
+- **Complete Time Analysis**: Full temporal series comparisons across all sensors
+  - Individual sensor trends
+  - Multi-sensor comparative analysis
+
+- **Diurnal Pattern Analysis**: Hourly behavior patterns
+  - Temperature variations throughout the day
+  - Humidity and pressure diurnal cycles
+
+- **Weekday Analysis**: Weekly distribution patterns
+  - Day-of-week trends
+  - Weekend vs weekday comparisons
+
+All analysis notebooks are Jupyter-based and include detailed visualizations and statistical insights.
+
 ## How to Use
 
 1. **Initial Setup**:
@@ -126,11 +153,21 @@ PolySense-Station/
 │   ├── onewire.py       # OneWire protocol
 │   ├── ntc.py           # NTC driver
 │   └── dht.py           # DHT11 driver
-└── Schematic/
-    ├── Schematic_Protoboard.png
-    ├── Schematic_Sensor.png
-    ├── Schematic_protoboard.fzz
-    └── Schematic_Sensors.fzz
+├── Schematic/
+│   ├── Schematic_Protoboard.png
+│   ├── Schematic_Sensor.png
+│   ├── Schematic_protoboard.fzz
+│   └── Schematic_Sensors.fzz
+└── Data_Analysis/
+    ├── Basic_Exploratory_Data_Analysis/
+    │   ├── Exploratory_Data_Analysis_September_Vitoria_da_Conquista.ipynb
+    │   └── *.png         # Distribution and comparison plots
+    └── Temporal_Analysis/
+        ├── Temporal_Analysis_September_Vitoria_da_Conquista.ipynb
+        └── graphs/
+            ├── complete_time_analysis/    # Full time series plots
+            ├── diurnal_pattern_analysis/  # Hourly pattern plots
+            └── weekday_analysis/          # Weekly distribution plots
 ```
 
 ## Development
