@@ -78,6 +78,14 @@ Timestamp,Temp_MPU6050_C,Temp_AHT20_C,Umid_AHT20_pct,Temp_BMP280_C,Press_BMP280_
 
 **Sampling interval**: 30 seconds
 
+## Published Dataset
+
+Real weather data collected using this system is available on Kaggle:
+
+📊 **[Vitória da Conquista Weather Data - September 2025](https://www.kaggle.com/datasets/jonassouza872/vitoria-da-conquista-weather-data-september)**
+
+This dataset contains environmental measurements from September 2025 collected in Vitória da Conquista, Bahia, Brazil, demonstrating the system's real-world application and data quality.
+
 ## How to Use
 
 1. **Initial Setup**:
