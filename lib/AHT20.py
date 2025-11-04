@@ -1,7 +1,7 @@
 from machine import I2C
 import time
 
-# Endereço I2C padrão do AHT20
+# I2C Andress
 AHT20_ADDR = 0x38
 
 class AHT20:

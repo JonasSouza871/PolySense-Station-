@@ -10,7 +10,7 @@ class BMP180:
     """
     _BMP180_ADDR = 0x77  # Endereço I2C fixo do BMP180
 
-    # Comandos e registradores
+ 
     _REG_AC1 = 0xAA
     _REG_CHIP_ID = 0xD0
     _REG_CTRL = 0xF4
