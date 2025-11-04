@@ -1,13 +1,13 @@
 from machine import I2C
 import time
 
-# Endereço I2C do BMP280
+# BMP280 I2C address
 BMP280_ADDR = 0x77
 
 class BMP280:
     """
-    Biblioteca para ler temperatura e pressão do BMP280 com calibração.
-    Implementa o algoritmo de compensação oficial da Bosch.
+    Driver for BMP280 temperature and pressure sensor with calibration.
+    Implements official Bosch compensation algorithm.
     """
     def __init__(self, i2c):
         self.i2c = i2c
@@ -17,27 +17,35 @@ class BMP280:
         self.t_fine = 0
         self._initialize_sensor()
 
-    # Dentro da classe BMP280, no arquivo bmp280.py
-
     def _initialize_sensor(self):
+        """
+        Initialize sensor and verify chip ID.
+        Accepts both BMP280 (0x58) and BME280 (0x60) chip IDs.
+        """
         try:
             chip_id = self.i2c.readfrom_mem(self.addr, 0xD0, 1)[0]
             
-            # ⬇️ LINHA MODIFICADA ⬇️
-            # Aceita 0x58 (BMP280) OU 0x60 (BME280)
+            # Accept 0x58 (BMP280) OR 0x60 (BME280)
             if chip_id in [0x58, 0x60]:
                 self._read_calibration_params()
-                # Configura o sensor (oversampling x1 para temp e press, modo normal)
+                # Configure sensor (oversampling x1 for temp and pressure, normal mode)
                 self.i2c.writeto_mem(self.addr, 0xF4, b'\x27') 
                 self.is_ready = True
-                print(f"BMP/BME280: Sensor pronto (Chip ID: {hex(chip_id)}).")
+                print(f"BMP/BME280: Sensor ready (Chip ID: {hex(chip_id)}).")
             else:
-                print(f"BMP280: Erro ao inicializar. Chip ID inesperado: {hex(chip_id)}")
+                print(f"BMP280: Initialization error. Unexpected Chip ID: {hex(chip_id)}")
         except OSError as e:
-            print(f"BMP280: Erro de comunicação I2C durante a inicialização: {e}")
+            print(f"BMP280: I2C communication error during initialization: {e}")
             self.is_ready = False
             
     def _read_word_le(self, reg, signed=False):
+        """
+        Read 16-bit word in little-endian format from register.
+        
+        Args:
+            reg: Register address
+            signed: Interpret as signed integer if True
+        """
         data = self.i2c.readfrom_mem(self.addr, reg, 2)
         val = data[0] | (data[1] << 8)
         if signed and val > 32767:
@@ -45,6 +53,10 @@ class BMP280:
         return val
 
     def _read_calibration_params(self):
+        """
+        Read factory calibration parameters from sensor EEPROM.
+        Required for temperature and pressure compensation.
+        """
         self.cal_params['dig_T1'] = self._read_word_le(0x88)
         self.cal_params['dig_T2'] = self._read_word_le(0x8A, signed=True)
         self.cal_params['dig_T3'] = self._read_word_le(0x8C, signed=True)
@@ -59,6 +71,15 @@ class BMP280:
         self.cal_params['dig_P9'] = self._read_word_le(0x9E, signed=True)
         
     def _compensate_temperature(self, adc_T):
+        """
+        Apply temperature compensation algorithm using calibration data.
+        
+        Args:
+            adc_T: Raw ADC temperature value
+            
+        Returns:
+            Temperature in degrees Celsius
+        """
         dig_T1 = self.cal_params['dig_T1']
         dig_T2 = self.cal_params['dig_T2']
         dig_T3 = self.cal_params['dig_T3']
@@ -71,6 +92,16 @@ class BMP280:
         return temp_celsius
 
     def _compensate_pressure(self, adc_P):
+        """
+        Apply pressure compensation algorithm using calibration data.
+        Requires prior temperature compensation for t_fine value.
+        
+        Args:
+            adc_P: Raw ADC pressure value
+            
+        Returns:
+            Pressure in hectopascals (hPa)
+        """
         dig_P1 = self.cal_params['dig_P1']
         dig_P2 = self.cal_params['dig_P2']
         dig_P3 = self.cal_params['dig_P3']
@@ -88,15 +119,21 @@ class BMP280:
         var1 = (dig_P3 * var1 * var1 / 524288.0 + dig_P2 * var1) / 524288.0
         var1 = (1.0 + var1 / 32768.0) * dig_P1
         if var1 == 0:
-            return 0  # evita divisão por zero
+            return 0  # Prevent division by zero
         p = 1048576.0 - adc_P
         p = ((p - var2 / 4096.0) * 6250.0) / var1
         var1 = dig_P9 * p * p / 2147483648.0
         var2 = p * dig_P8 / 32768.0
         p = p + (var1 + var2 + dig_P7) / 16.0
-        return p / 100.0  # hPa
+        return p / 100.0  # Convert to hPa
 
     def get_data(self):
+        """
+        Read and return compensated temperature and pressure values.
+        
+        Returns:
+            tuple: (temperature_celsius, pressure_hpa) or (None, None) on error
+        """
         if not self.is_ready:
             return None, None
             
@@ -115,5 +152,5 @@ class BMP280:
             
             return temp_celsius, pressure_hpa
         except OSError as e:
-            print(f"BMP280: Erro na leitura de dados: {e}")
+            print(f"BMP280: Data read error: {e}")
             return None, None

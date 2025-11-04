@@ -2,7 +2,7 @@ from machine import Pin
 import time
 
 class DHTBase:
-    # A classe base continua a mesma, sem mudanças.
+    """Base class for DHT sensor family communication protocol."""
     def __init__(self, pin):
         self.pin = pin
         self.buf = bytearray(5)
@@ -11,6 +11,7 @@ class DHTBase:
         time.sleep_ms(20)
 
     def measure(self):
+        """Perform sensor measurement using DHT protocol timing."""
         buf = self.buf
         pin = self.pin
         pin.init(Pin.OUT, Pin.PULL_DOWN)
@@ -48,15 +49,12 @@ class DHTBase:
         if (buf[0] + buf[1] + buf[2] + buf[3]) & 0xFF != buf[4]:
             raise Exception("checksum error")
 
-# >>> ESTA É A CLASSE DHT11 MODIFICADA <<<
 class DHT11(DHTBase):
+    """DHT11 temperature and humidity sensor driver."""
     def humidity(self):
-        # DHT11 usa o byte 0 para umidade (parte inteira) e byte 1 para a parte decimal.
-        # No entanto, a maioria dos DHT11 tem a parte decimal sempre zero.
-        # A forma mais precisa é ler os dois bytes.
+        """Returns relative humidity in percentage."""
         return (self.buf[0] + self.buf[1] / 100)
     
     def temperature(self):
-        # DHT11 usa o byte 2 para temperatura (parte inteira) e byte 3 para a parte decimal.
-        # Se for um DHT11, a parte decimal é geralmente 0. Mas esta forma lida com os dois.
+        """Returns temperature in degrees Celsius."""
         return (self.buf[2] + self.buf[3] / 100)

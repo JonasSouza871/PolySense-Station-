@@ -1,15 +1,10 @@
-# main.py - Datalogger Otimizado para Bateria (sem saídas no console/serial)
-# Todas as instruções 'print()' foram removidas para economizar energia.
-# O feedback é fornecido pelo display OLED e pelo LED da placa.
-# NOVO: Botão no pino 22 controla o display OLED para economizar energia
-
-# === IMPORTAÇÕES ===
+# === IMPORTS ===
 import os
 import machine
 from machine import Pin, I2C, ADC, SPI, RTC
 import time
 
-# Bibliotecas dos Sensores e Dispositivos
+# Sensor and Device Libraries
 from ssd1306 import SSD1306
 from mpu6050_temp import MPU6050
 from AHT20 import AHT20
@@ -21,10 +16,10 @@ from ntc import NTC
 from dht11 import DHT11
 from sdcard import SDCard
 
-# === CONFIGURAÇÕES GERAIS E DE HARDWARE ===
+# === HARDWARE CONFIGURATION AND GENERAL SETTINGS ===
 led = Pin("LED", Pin.OUT)
 eject_button = Pin(3, Pin.IN, Pin.PULL_DOWN)
-display_button = Pin(22, Pin.IN, Pin.PULL_DOWN)  # <<< NOVO BOTÃO PARA CONTROLAR DISPLAY
+display_button = Pin(22, Pin.IN, Pin.PULL_DOWN)  # Display control button for power management
 SDA1_PIN = 18
 SCL1_PIN = 19
 i2c1 = I2C(1, sda=Pin(SDA1_PIN), scl=Pin(SCL1_PIN), freq=100000)
@@ -41,9 +36,9 @@ try:
 except Exception as e:
     dht_sensor = None
 
-# === INICIALIZAÇÃO DOS DISPOSITIVOS E SISTEMA ===
+# === SYSTEM AND DEVICE INITIALIZATION ===
 
-# --- Montagem do SD Card e Criação do Arquivo de Log ---
+# --- SD Card Mounting and Log File Creation ---
 try:
     sd = SDCard(spi, cs)
     os.mount(sd, '/sd')
@@ -55,23 +50,23 @@ try:
     )
     try:
         with open(log_file_path, 'r') as f:
-            pass # Arquivo existe
+            pass # File exists, proceed with append mode
     except OSError:
         with open(log_file_path, 'w') as f:
-            f.write(csv_header) # Arquivo não existe, cria com cabeçalho
+            f.write(csv_header) # File does not exist, create with CSV header
 except Exception as e:
-    # Em caso de falha crítica na inicialização do SD, pisca o LED rapidamente como sinal de erro
+    # Critical failure during SD initialization - rapid LED blink indicates error state
     while True:
         led.toggle()
         time.sleep_ms(100)
 
-# --- Inicialização do Relógio de Tempo Real (RTC) ---
+# --- Real-Time Clock (RTC) Initialization ---
 rtc = RTC()
-# IMPORTANTE: Para acertar o relógio, conecte ao computador uma vez e rode
-# o código com a linha abaixo descomentada e com a hora atual.
-# rtc.datetime((2025, 8, 25, 0, 22, 12, 0, 0)) # (ano, mês, dia, dia_da_semana(0=Seg), hora, minuto, segundo, microssegundo)
+# IMPORTANT: To synchronize the clock, connect to computer and execute this code
+# with the line below uncommented, setting the current datetime.
+# rtc.datetime((2025, 8, 25, 0, 22, 12, 0, 0)) # Format: (year, month, day, weekday(0=Mon), hour, minute, second, microsecond)
 
-# --- Inicialização dos Sensores I2C, OLED e OneWire ---
+# --- I2C Sensors, OLED Display, and OneWire Bus Initialization ---
 mpu_sensor = MPU6050(i2c1)
 aht_sensor = AHT20(i2c1)
 bmp280_sensor = BMP280(i2c1)
@@ -79,26 +74,26 @@ bmp180_sensor = BMP180(i2c0)
 oled = SSD1306(128, 64, i2c0)
 roms = ds.scan()
 
-# Variáveis para a tela de status
+# Status display state variables
 screen = 0
 record_count = 0
 log_status = "Aguardando"
 start_time = time.ticks_ms()
-display_enabled = False  # <<< VARIÁVEL PARA CONTROLAR ESTADO DO DISPLAY
+display_enabled = False  # Display power state control flag
 
-# === LOOP PRINCIPAL ===
+# === MAIN EXECUTION LOOP ===
 while True:
     if eject_button.value() == 1:
         break
 
-    # <<< VERIFICA ESTADO DO BOTÃO DO DISPLAY
+    # Monitor display control button state
     current_display_state = display_button.value() == 1
     
-    # Se o estado do display mudou, atualiza a variável de controle
+    # Update display state on button transition
     if current_display_state != display_enabled:
         display_enabled = current_display_state
         if not display_enabled:
-            # Quando o display é desabilitado, limpa a tela para economizar energia
+            # Clear display buffer when disabled to reduce power consumption
             try:
                 oled.fill(0)
                 oled.show()
@@ -106,7 +101,7 @@ while True:
                 pass
 
     try:
-        # 1. LEITURA DE TODOS OS SENSORES
+        # 1. SENSOR DATA ACQUISITION
         tempA = mpu_sensor.get_temperature()
         tempB, umidA = aht_sensor.get_data()
         tempC, pressA = bmp280_sensor.get_data()
@@ -128,14 +123,14 @@ while True:
                 except Exception:
                     time.sleep_ms(100)
 
-        # 2. OBTER TIMESTAMP DO RTC
+        # 2. RTC TIMESTAMP RETRIEVAL
         current_time = rtc.datetime()
         timestamp_str = "{:04d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}".format(
             current_time[0], current_time[1], current_time[2],
             current_time[4], current_time[5], current_time[6]
         )
 
-        # 3. GRAVAÇÃO DOS DADOS NO ARQUIVO CSV
+        # 3. CSV DATA LOGGING TO SD CARD
         row_values = [
             timestamp_str,
             f"{tempA:.2f}" if tempA is not None else "",
@@ -166,8 +161,8 @@ while True:
         except Exception as e:
             log_status = "ERRO GRAVACAO"
 
-        # 4. EXIBIÇÃO NO DISPLAY OLED (APENAS SE O BOTÃO ESTIVER PRESSIONADO)
-        if display_enabled:  # <<< SÓ ATUALIZA O DISPLAY SE ESTIVER HABILITADO
+        # 4. OLED DISPLAY UPDATE (ONLY WHEN ENABLED)
+        if display_enabled:  # Conditional display refresh for power efficiency
             try:
                 oled.fill(0)
                 if screen == 0:
@@ -196,12 +191,12 @@ while True:
                 oled.show()
                 screen = (screen + 1) % 3
             except Exception as e:
-                # Se houver erro no display, continua funcionando normalmente
+                # Display errors are non-critical - continue data acquisition
                 pass
 
     except Exception as e:
         log_status = "ERRO FATAL"
-        # Mesmo com erro, tenta mostrar no display antes de parar (se estiver habilitado)
+        # Attempt to display fatal error message if display is enabled
         if display_enabled:
             try:
                 oled.fill(0)
@@ -209,23 +204,23 @@ while True:
                 oled.text("Reinicie o dispos.", 0, 40)
                 oled.show()
             except:
-                pass # Se até o display falhar, não há o que fazer
+                pass # Complete failure - no recovery possible
         break 
         
-    # 5. AGUARDAR PARA O PRÓXIMO CICLO
-    time.sleep(30) # <<< ALTERAÇÃO REALIZADA AQUI
+    # 5. INTER-CYCLE DELAY
+    time.sleep(30) # 30-second sampling interval
 
-# === FINALIZAÇÃO E EJEÇÃO SEGURA ===
+# === SAFE SHUTDOWN AND SD CARD EJECTION PROTOCOL ===
 try:
     os.umount('/sd')
-    # Pisca o LED 5 vezes para sinalizar que é seguro remover o cartão
+    # 5-pulse LED sequence indicates safe removal state
     for _ in range(5):
         led.on()
         time.sleep(0.2)
         led.off()
         time.sleep(0.2)
 except Exception as e:
-    # Se a desmontagem falhar, pisca rapidamente
+    # Unmount failure - rapid LED pulse indicates unsafe state
     while True:
         led.toggle()
         time.sleep_ms(100)
