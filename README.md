@@ -177,7 +177,7 @@ Timestamp,Temp_MPU6050_C,Temp_AHT20_C,Umid_AHT20_pct,Temp_BMP280_C,Press_BMP280_
 - Exponential Weighted Moving Average (EWMA) filter
 - Comparative analysis of filter effectiveness
 
-![Digital Filters](images/signal_processing/Temperature_Analysis_Panel_Complete_View_Raw_vs_FilterednVitoria_da_Conquista_September_2025.png)
+![Digital Filters](images/signal_processing/Temperature_Analysis_Panel_Complete_View_Raw_vs_Median_FilterednVitoria_da_Conquista_September_2025_3.png)
 
 **13. FFT Frequency Analysis**
 - Spectral decomposition of environmental signals
