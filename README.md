@@ -172,19 +172,17 @@ Timestamp,Temp_MPU6050_C,Temp_AHT20_C,Umid_AHT20_pct,Temp_BMP280_C,Press_BMP280_
 ### Signal Processing
 
 **12. Digital Filters**
-- Low-pass, high-pass, band-pass filter implementations
-- Butterworth, Chebyshev, and Bessel filter comparisons
-- Frequency response analysis
-- Noise reduction techniques
+- Moving Average Filter Analysis
+- Median filter for noise reduction
+- Exponential Weighted Moving Average (EWMA) filter
+- Comparative analysis of filter effectiveness
 
-![Digital Filters](images/signal_processing/12_Digital_Filters_plot_01.png)
+![Digital Filters](images/signal_processing/Temperature_Analysis_Panel_Complete_View_Raw_vs_FilterednVitoria_da_Conquista_September_2025.png)
 
 **13. FFT Frequency Analysis**
 - Spectral decomposition of environmental signals
 - Dominant frequency identification
 - Periodicity analysis
-
-![FFT Analysis](images/signal_processing/13_FFT_Frequency_Analysis_plot_01.png)
 
 ## How to Execute
 
@@ -217,18 +215,13 @@ Timestamp,Temp_MPU6050_C,Temp_AHT20_C,Umid_AHT20_pct,Temp_BMP280_C,Press_BMP280_
    jupyter notebook notebooks/
    ```
 
-3. **Extract Images** (optional):
-   ```bash
-   python extract_images.py
-   ```
-
 ## Key Results
 
 - **Sensor Validation**: High correlation (>0.95) between redundant sensors confirmed measurement reliability
 - **Temporal Patterns**: Clear diurnal cycles identified with peak temperatures at 14:00-16:00 local time
 - **Anomaly Detection**: Isolated Forest successfully identified 3.2% of measurements as outliers
 - **Clustering**: Gaussian Mixture Model identified 4 distinct weather regimes in September data
-- **Prediction**: LSTM model achieved MAE < 0.5°C for 1-hour temperature forecasting
+- **Prediction**: LSTM model achieved MAE < 1°C for 1-hour temperature forecasting
 - **Signal Quality**: Digital filtering reduced high-frequency noise by 40dB while preserving weather signals
 
 ## Limitations
