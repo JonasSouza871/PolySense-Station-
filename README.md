@@ -107,7 +107,7 @@ Timestamp,Temp_MPU6050_C,Temp_AHT20_C,Umid_AHT20_pct,Temp_BMP280_C,Press_BMP280_
 - Distribution analysis and outlier detection
 - Sensor comparison and consistency checks
 
-![Sensor Distributions](images/data_analysis/Comparison_of_Temperature_Sensor_Distributions_September_Vitória_da_Conquista.png)
+![Sensor Distributions](images/data_analysis/01_Comparison_of_Temperature_Sensor_Distributions_September_Vitória_da_Conquista.png)
 
 **02. Correlation and Relationship Analyses**
 - Cross-correlation between environmental variables
@@ -119,7 +119,7 @@ Timestamp,Temp_MPU6050_C,Temp_AHT20_C,Umid_AHT20_pct,Temp_BMP280_C,Press_BMP280_
 - Gap identification and quality metrics
 - Temporal availability patterns
 
-![Data Completeness](images/data_analysis/Data_Completeness_per_Temperature_Sensor_Vitória_da_Conquista_September_2025.png)
+![Data Completeness](images/data_analysis/03_Data_Completeness_per_Temperature_Sensor_Vitória_da_Conquista_September_2025.png)
 
 **04. Sensor Comparison and Validation**
 - Inter-sensor agreement analysis
@@ -150,7 +150,7 @@ Timestamp,Temp_MPU6050_C,Temp_AHT20_C,Umid_AHT20_pct,Temp_BMP280_C,Press_BMP280_
 - Feature importance analysis
 - Model performance evaluation
 
-![Decision Tree](images/machine_learning/Decision_Tree_Temperature_Prediction_All_Sensors_Average_September_2025_Analysis_in_Vitória_da_Conquista.png)
+![Decision Tree](images/machine_learning/08_Decision_Tree_Temperature_Prediction_All_Sensors_Average_September_2025_Analysis_in_Vitória_da_Conquista.png)
 
 **09. Gaussian Mixture Clustering**
 - Weather condition classification
@@ -177,7 +177,7 @@ Timestamp,Temp_MPU6050_C,Temp_AHT20_C,Umid_AHT20_pct,Temp_BMP280_C,Press_BMP280_
 - Exponential Weighted Moving Average (EWMA) filter
 - Comparative analysis of filter effectiveness
 
-![Digital Filters](images/signal_processing/Temperature_Analysis_Panel_Complete_View_Raw_vs_Median_FilterednVitoria_da_Conquista_September_2025_3.png)
+![Digital Filters](images/signal_processing/12_Temperature_Analysis_Panel_Complete_View_Raw_vs_Median_FilterednVitoria_da_Conquista_September_2025_3.png)
 
 **13. FFT Frequency Analysis**
 - Spectral decomposition of environmental signals
