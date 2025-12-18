@@ -6,6 +6,8 @@ Custom PCB design for the PolySense Station environmental monitoring system.
 
 This PCB was designed to integrate all sensors, the Raspberry Pi Pico microcontroller, SD card module, OLED display, and RTC into a single compact board. The design simplifies assembly, improves reliability, and reduces the physical footprint compared to the original protoboard implementation.
 
+**Status**: Under development. The first version (v1) has been manufactured and tested, revealing some errors that will be corrected in version 2.
+
 ## Manufacturing
 
 - **Manufacturer**: [JLCPCB](https://jlcpcb.com/)
@@ -22,13 +24,10 @@ This PCB was designed to integrate all sensors, the Raspberry Pi Pico microcontr
 ```
 PCB/
 ├── Photos/                    # PCB photos and test results
-│   ├── PCB_front.jpg         # Front view of manufactured PCB
-│   ├── PCB_back.jpg          # Back view of manufactured PCB
+│   ├── PCB_front.jpg         # Front view of assembled PCB (v1)
 │   └── Serial_output.png     # Serial output showing sensor readings
 │
-├── Design/                    # Design files
-│   ├── PCB_SENSORES.fzz      # Fritzing PCB design file
-│   └── final_model.zip       # Related model files
+├── Design/                    # Design files (currently being revised for v2)
 │
 ├── Firmware/                  # Test firmware for PCB validation
 │   ├── main.py               # Main test code
@@ -58,6 +57,21 @@ The PCB integrates the following components:
   - DHT22 (Temperature and humidity)
   - DHT11 (Temperature and humidity)
 
+## Development Status
+
+### Version 1 (Current)
+- ✅ Successfully manufactured by JLCPCB
+- ✅ Board assembled and powered on
+- ✅ Firmware validation in progress
+- ⚠️ Several routing and component placement errors identified
+
+### Version 2 (Planned)
+- [ ] Fix identified errors from v1
+- [ ] Improve component placement
+- [ ] Optimize routing for better signal integrity
+- [ ] Add additional test points
+- [ ] Enhanced power management
+
 ## Assembly Notes
 
 1. **Component Placement**: Follow silkscreen markings for correct component orientation
@@ -75,11 +89,8 @@ After assembly, upload the firmware from the `Firmware/` folder to validate:
 
 ## Photos
 
-### PCB Front View
+### PCB Front View (v1 - Assembled)
 ![PCB Front](Photos/PCB_front.jpg)
-
-### PCB Back View
-![PCB Back](Photos/PCB_back.jpg)
 
 ### Test Results
 ![Serial Output](Photos/Serial_output.png)
@@ -97,7 +108,7 @@ Main components required:
 - 1x BMP180 Module
 - 1x DS18B20 Temperature Sensor
 - 1x LM35 Temperature Sensor
-- 1x 10kΩ NTC Thermistor
+- 1x KY-028 NTC Thermistor Module
 - 1x DHT22 Module
 - 1x DHT11 Module
 - 2x Tactile Push Buttons
