@@ -64,6 +64,13 @@ PolySense-Station/
 │   ├── Schematic_Sensor.png
 │   └── *.fzz files
 │
+├── PCB/                                  # Custom PCB design and manufacturing
+│   ├── Photos/                           # PCB photos and test results
+│   ├── Design/                           # Fritzing design files
+│   ├── Firmware/                         # Test firmware for validation
+│   ├── Documentation/                    # Additional documentation
+│   └── README.md                         # PCB-specific documentation
+│
 ├── main.py                               # Main acquisition code
 └── README.md                             # Project documentation
 ```
@@ -248,6 +255,10 @@ Dataset collected in Vitória da Conquista, Bahia, Brazil (September 2025). Refe
 
 ### Sensors Wiring
 ![Sensors Schematic](Schematic/Schematic_Sensor.png)
+
+### Custom PCB
+
+A custom PCB was designed and manufactured by JLCPCB to integrate all components into a compact, reliable board. See the [PCB/](PCB/) folder for detailed information, design files, photos, and assembly instructions.
 
 ## Author
 
