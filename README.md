@@ -47,10 +47,16 @@ PolySense-Station/
 │   ├── 12_Digital_Filters.ipynb
 │   └── 13_FFT_Frequency_Analysis.ipynb
 │
-├── images/                               # Generated visualizations (106 plots)
+├── images/                               # Generated visualizations (111 plots)
 │   ├── data_analysis/                    # EDA, correlation, temporal patterns
 │   ├── machine_learning/                 # ML model results and clusters
 │   └── signal_processing/                # Filter responses and FFT plots
+│
+├── reports/                              # Comprehensive project reports
+│   ├── relatorio_polysense_pt.tex        # Portuguese LaTeX report
+│   ├── relatorio_polysense_pt.pdf        # Portuguese PDF (53 pages)
+│   ├── polysense_report_en.tex           # English LaTeX report
+│   └── polysense_report_en.pdf           # English PDF (53 pages)
 │
 ├── lib/                                  # MicroPython sensor drivers
 │   ├── sdcard.py, ssd1306.py
@@ -239,6 +245,28 @@ Timestamp,Temp_MPU6050_C,Temp_AHT20_C,Umid_AHT20_pct,Temp_BMP280_C,Press_BMP280_
 - DHT11 sensor shows lower precision compared to other temperature sensors
 - LSTM model requires substantial training data for optimal performance
 - SD card write operations consume significant power in battery mode
+
+## Technical Reports
+
+Comprehensive technical documentation is available in the [reports/](reports/) folder:
+
+- **Portuguese Report** ([PDF](reports/relatorio_polysense_pt.pdf) | [LaTeX](reports/relatorio_polysense_pt.tex))
+  - 53 pages documenting hardware design, methodology, and complete analysis
+  - Includes all 111 visualizations from the 13 analysis notebooks
+  - PCB schematics and sensor integration details
+
+- **English Report** ([PDF](reports/polysense_report_en.pdf) | [LaTeX](reports/polysense_report_en.tex))
+  - Complete translation with identical structure and content
+  - Hardware architecture, data collection methodology
+  - Machine learning results, signal processing, and conclusions
+
+The reports cover:
+- Executive summary with key achievements (82,430 measurements, MAE < 1°C LSTM prediction)
+- Data collection methodology and sensor suite
+- Module 1: Exploratory Data Analysis (Notebooks 01-06)
+- Module 2: Machine Learning (Notebooks 07-11)
+- Module 3: Digital Signal Processing (Notebooks 12-13)
+- Repository structure and conclusions
 
 ## Data Source
 
