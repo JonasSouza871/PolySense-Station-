@@ -1,0 +1,1005 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{geometry}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{url}
+
+\geometry{margin=2.5cm}
+
+% Set image path
+\graphicspath{{../images/},{../PCB/Photos/},{../Schematic/}}
+
+\begin{document}
+
+% ============================================
+% CUSTOM COVER PAGE
+% ============================================
+\begin{titlepage}
+    \centering
+    \vspace*{2cm}
+
+    {\large Electrical Engineering}\\[3cm]
+
+    % Title
+    {\huge \textbf{PolySense Station}}\\[0.5cm]
+    {\Large \textbf{Environmental Monitoring System}}\\[3cm]
+
+    % Subtitle
+    {\large Multi-sensor data collection, temporal analysis, and machine learning}\\[0.3cm]
+    {\large applied to climate monitoring}\\[4cm]
+
+    \vfill
+
+    % Author information
+    \begin{flushleft}
+        \large
+        \textbf{Author:} Jonas Souza\\
+        \textbf{Education:} Electrical Engineer\\
+        \textbf{Date:} \today
+    \end{flushleft}
+
+    \vspace{1cm}
+
+\end{titlepage}
+
+\newpage
+
+\tableofcontents
+\newpage
+
+\section{Executive Summary}
+
+This report presents a comprehensive analysis of the \textbf{PolySense Station} project, an autonomous environmental data acquisition and analysis system developed from scratch. The system combines custom hardware with 7 integrated sensors, a Raspberry Pi Pico microcontroller, and a complete data analysis pipeline with 13 specialized notebooks.
+
+\subsection{Key Achievements}
+
+\begin{itemize}
+    \item \textbf{Real data collection:} 82,430 measurements over 30 days (September 2025)
+    \item \textbf{Temporal resolution:} 30-second sampling interval
+    \item \textbf{Sensor redundancy:} 7 temperature sensors, 2 humidity sensors, 2 pressure sensors
+    \item \textbf{Validation against INMET station:} National Institute of Meteorology
+    \item \textbf{LSTM model accuracy:} MAE < 1°C for 1-hour ahead temperature prediction
+    \item \textbf{Climate clustering:} 4 distinct regimes identified via GMM
+    \item \textbf{Public dataset:} Available on Kaggle with 82,430 records
+\end{itemize}
+
+\section{Introduction}
+
+\subsection{Context}
+
+Environmental monitoring is essential for understanding local climate patterns, validating predictive models, and developing climate-sensitive automation systems. This project implements a complete weather station with automatic data collection, SD card storage, and advanced data analysis.
+
+\subsection{Objectives}
+
+\begin{enumerate}
+    \item Develop data acquisition hardware with sensor redundancy
+    \item Collect environmental data (30-second interval)
+    \item Validate measurements against official meteorological station (INMET)
+    \item Perform comprehensive exploratory data analysis
+    \item Apply machine learning techniques for pattern identification
+    \item Develop temperature predictive models using LSTM neural networks
+    \item Apply digital signal processing for noise reduction
+\end{enumerate}
+
+\subsection{Location and Period}
+
+\begin{itemize}
+    \item \textbf{Location:} Vitória da Conquista, Bahia, Brazil
+    \item \textbf{Altitude:} 923 meters
+    \item \textbf{Collection period:} August 31 to September 30, 2025
+    \item \textbf{Total records:} 82,430 measurements
+    \item \textbf{Dataset size:} 4.8 MB (raw CSV)
+\end{itemize}
+
+\section{Data Collection Methodology}
+
+\subsection{Hardware Architecture}
+
+The system was developed using the \textbf{Raspberry Pi Pico} (RP2040) microcontroller programmed in MicroPython, with the following interfaces:
+
+\begin{itemize}
+    \item \textbf{Dual I2C:} Two I2C buses to minimize electrical interference
+    \item \textbf{SPI:} Interface for SD card writing
+    \item \textbf{OneWire:} Protocol for DS18B20 temperature sensor
+    \item \textbf{Analog:} ADC converter for NTC thermistor
+    \item \textbf{OLED Display:} 128x64 screen for real-time monitoring
+    \item \textbf{RTC:} Real-time clock for precise timestamps
+\end{itemize}
+
+\textbf{Hardware Design:} The system includes a custom PCB for sensor integration and a detailed schematic for replication:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{PCB_front.jpg}
+    \caption{Photograph of the PolySense Station PCB (Printed Circuit Board)}
+    \label{fig:pcb_front}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{Schematic_Protoboard.png}
+    \caption{Protoboard circuit schematic of the PolySense Station}
+    \label{fig:schematic_protoboard}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{Schematic_Sensor.png}
+    \caption{Detailed schematic of integrated sensors}
+    \label{fig:schematic_sensor}
+\end{figure}
+
+\subsection{Implemented Sensor Suite}
+
+\begin{table}[H]
+\centering
+\caption{Sensors integrated into PolySense Station}
+\scriptsize
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Sensor} & \textbf{Type} & \textbf{Measurements} & \textbf{Protocol} \\ \midrule
+MPU6050 & Gyroscope/Accelerometer & Temperature & I2C \\
+AHT20 & Environmental & Temperature, Humidity & I2C \\
+BMP280 & Barometric & Temperature, Pressure & I2C \\
+BMP180 & Barometric & Temperature, Pressure & I2C \\
+DS18B20 & OneWire Digital & Temperature & OneWire \\
+NTC (KY-028) & Analog Thermistor & Temperature & ADC \\
+DHT11 & Environmental & Temperature, Humidity & Digital \\ \bottomrule
+\end{tabular}
+\label{tab:sensors}
+\end{table}
+
+\textbf{Redundancy justification:}
+\begin{itemize}
+    \item Cross-validation between multiple sensors
+    \item Detection of instrumental failures
+    \item Reference sensors (DS18B20, BMP280, AHT20)
+\end{itemize}
+
+\subsection{Acquisition Firmware}
+
+The main firmware (\texttt{main.py}, 226 lines) implements:
+
+\begin{itemize}
+    \item Synchronous reading of all sensors every 30 seconds
+    \item Writing to SD card with RTC timestamp
+    \item Rotating OLED display with 3 information screens
+    \item Feedback LED (blinks on successful write)
+    \item Safe ejection system via button
+    \item Error handling and write status
+\end{itemize}
+
+\textbf{CSV storage format:}
+\begin{verbatim}
+Timestamp, Temp_MPU6050_C, Temp_AHT20_C, Umid_AHT20_pct,
+Temp_BMP280_C, Press_BMP280_hPa, Temp_BMP180_C,
+Press_BMP180_hPa, Temp_DS18B20_C, Temp_NTC_C,
+Temp_DHT11_C, Umid_DHT11_pct
+\end{verbatim}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{Serial_output.png}
+    \caption{Serial output of the firmware during PolySense Station operation}
+    \label{fig:serial_output}
+\end{figure}
+
+\subsection{Validation Against INMET Station}
+
+Data was validated against the official INMET meteorological station:
+\begin{itemize}
+    \item \textbf{Validation dataset:} 719 records from INMET station
+    \item \textbf{INMET variables:} Temperature, humidity, pressure, wind, radiation, precipitation
+    \item \textbf{Combined dataset:} 331 hourly aggregated records
+\end{itemize}
+
+\section{Module 1: Exploratory Data Analysis (Notebooks 01-05)}
+
+\subsection{Notebook 01: Initial Exploratory Analysis}
+
+\subsubsection{Temperature Distributions}
+
+Analysis of temperature distributions revealed that all 7 sensors show consistent patterns:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{data_analysis/01_Temperature_Data_Histogram_in_September_Vitória_da_Conquista.png}
+    \caption{Histogram of temperature distributions (7 sensors)}
+    \label{fig:temp_hist}
+\end{figure}
+
+\textbf{Observations:}
+\begin{itemize}
+    \item Approximately normal distributions with peaks between 20-22°C
+    \item BMP280, AHT20, DS18B20 sensors with smooth curves
+    \item DHT11 exhibits quantization artifacts (discrete steps)
+    \item NTC thermistor shows greater dispersion (sensitivity to solar radiation)
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{data_analysis/01_Comparison_of_Temperature_Sensor_Distributions_September_Vitória_da_Conquista.png}
+    \caption{Comparative boxplot - Temperature distribution between sensors}
+    \label{fig:temp_boxplot}
+\end{figure}
+
+\textbf{Main findings:}
+\begin{itemize}
+    \item Excellent agreement between sensors (very close medians)
+    \item Upper outliers identify daytime temperature peaks
+    \item Consistent interquartile range between sensors
+    \item DHT11 shows greater variability (lower resolution)
+\end{itemize}
+
+\subsubsection{Humidity Distributions}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{data_analysis/01_Humidity_Data_Histogram_in_September_Vitória_da_Conquista.png}
+    \caption{Histogram of relative humidity (AHT20 and DHT11)}
+    \label{fig:humid_hist}
+\end{figure}
+
+\textbf{Identified bimodal pattern:}
+\begin{itemize}
+    \item First peak: 50-55\% (daytime period)
+    \item Second peak: 75-80\% (nighttime period with fog formation)
+    \item Consistent with September climate on the plateau (altitude 923m)
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{data_analysis/01_Comparison_of_Humidity_Sensor_Distributions_September_Vitória_da_Conquista.png}
+    \caption{Comparative boxplot of humidity (AHT20 vs DHT11)}
+    \label{fig:humid_boxplot}
+\end{figure}
+
+\subsubsection{Barometric Pressure Distributions}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{data_analysis/01_Pressure_Data_Histogram_in_September_Vitória_da_Conquista.png}
+    \caption{Histogram of barometric pressure (BMP280 and BMP180)}
+    \label{fig:press_hist}
+\end{figure}
+
+\textbf{Observed characteristics:}
+\begin{itemize}
+    \item Range: 914-924 hPa (mean ~920 hPa)
+    \item Distribution consistent with 923m altitude
+    \item Excellent agreement between BMP280 and BMP180
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{data_analysis/01_Comparison_of_Pressure_Sensor_Distributions_September_Vitória_da_Conquista.png}
+    \caption{Comparative boxplot of pressure (BMP280 vs BMP180)}
+    \label{fig:press_boxplot}
+\end{figure}
+
+\subsection{Notebook 02: Correlation Analysis}
+
+\subsubsection{Global Correlation Matrix}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{data_analysis/02_Correlation_Matrix_All_Environmental_SensorsnVitória_da_Conquista_September_2025.png}
+    \caption{Correlation matrix between all 11 measured variables}
+    \label{fig:corr_matrix}
+\end{figure}
+
+\textbf{Identified correlations:}
+\begin{itemize}
+    \item \textbf{Temperature sensors (among themselves):} r > 0.99
+    \item \textbf{Humidity sensors (AHT20 vs DHT11):} r = 0.985
+    \item \textbf{Pressure sensors (BMP280 vs BMP180):} r = 0.984
+    \item \textbf{Temperature vs Humidity:} r = -0.868 (strong inverse)
+    \item \textbf{Temperature vs Pressure:} r = -0.559 (moderate inverse)
+    \item \textbf{Humidity vs Pressure:} r = 0.463 (weak positive)
+\end{itemize}
+
+\subsubsection{Bivariate Relationships with KDE}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{data_analysis/02_Relationship_between_Temperature_BMP280_and_Humidity_AHT20nVitória_da_Conquista_September_2025.png}
+    \caption{Temperature vs Humidity relationship with probability density (KDE)}
+    \label{fig:temp_humid_kde}
+\end{figure}
+
+\textbf{Physical interpretation:}
+\begin{itemize}
+    \item Strong negative correlation (r = -0.868)
+    \item Daytime warming reduces relative humidity
+    \item Nighttime cooling increases humidity (fog formation)
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{data_analysis/02_Relationship_between_Temperature_BMP280_and_Pressure_BMP180nVitória_da_Conquista_September_2025.png}
+    \caption{Temperature vs Barometric Pressure relationship}
+    \label{fig:temp_press_kde}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{data_analysis/02_Relationship_between_Humidity_AHT20_and_Pressure_BMP180nVitória_da_Conquista_September_2025.png}
+    \caption{Humidity vs Barometric Pressure relationship}
+    \label{fig:humid_press_kde}
+\end{figure}
+
+\subsection{Notebook 03: Missing Data Analysis}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{data_analysis/03_Data_Completeness_per_Temperature_Sensor_Vitória_da_Conquista_September_2025.png}
+    \caption{Data completeness - Temperature sensors}
+    \label{fig:completeness_temp}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{data_analysis/03_Data_Completeness_per_Humidity_Sensor_Vitória_da_Conquista_September_2025.png}
+    \caption{Data completeness - Humidity sensors}
+    \label{fig:completeness_humid}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{data_analysis/03_Data_Completeness_per_Pressure_Sensor_Vitória_da_Conquista_September_2025.png}
+    \caption{Data completeness - Pressure sensors}
+    \label{fig:completeness_press}
+\end{figure}
+
+\textbf{Quality results:}
+\begin{itemize}
+    \item DS18B20: Highest completeness (>99.99\%)
+    \item DHT11: Minor gaps (~99.98\%)
+    \item All sensors: >99.9\% data available
+    \item High reliability of the acquisition system
+\end{itemize}
+
+\subsection{Notebook 04: Sensor Validation}
+
+\subsubsection{Bland-Altman Analysis - Temperature}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{data_analysis/04_BLAND_ALTMAN_ANALYSIS_Temperature_Sensors_Pairwise_Comparison.png}
+    \caption{Bland-Altman: Comparison between pairs of temperature sensors}
+    \label{fig:bland_altman_temp}
+\end{figure}
+
+\textbf{Inter-sensor validation:}
+\begin{itemize}
+    \item Mean bias < 0.5°C between sensors
+    \item Limits of agreement within ±2°C
+    \item Excellent agreement between BMP280, AHT20, and DS18B20
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{data_analysis/04_BLAND_ALTMAN_ANALYSIS_Sensors_vs_Reference_Temp_Ins_C.png}
+    \caption{Bland-Altman: Sensors vs INMET Reference}
+    \label{fig:bland_altman_inmet}
+\end{figure}
+
+\textbf{Validation against INMET:}
+\begin{itemize}
+    \item Mean bias < 2°C compared to the official station
+    \item NTC thermistor shows systematic offset (solar radiation)
+    \item Digital sensors validate reliably
+\end{itemize}
+
+\subsubsection{Bland-Altman Analysis - Humidity and Pressure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{data_analysis/04_BLAND_ALTMAN_ANALYSIS_Humidity_Sensors_Pairwise_Comparison.png}
+    \caption{Bland-Altman: Comparison of humidity sensors (AHT20 vs DHT11)}
+    \label{fig:bland_altman_humid}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{data_analysis/04_BLAND_ALTMAN_ANALYSIS_Pressure_Sensors_BMP280_vs_BMP180.png}
+    \caption{Bland-Altman: Comparison of pressure sensors}
+    \label{fig:bland_altman_press}
+\end{figure}
+
+\subsection{Notebook 05: Temporal Analysis}
+
+\subsubsection{Complete Time Series}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{data_analysis/05_Temperature_Sensors_Comparison_September_2025_Vitória_da_Conquista.png}
+    \caption{Complete temperature time series (September 2025)}
+    \label{fig:temp_ts}
+\end{figure}
+
+\textbf{Identified patterns:}
+\begin{itemize}
+    \item Clear diurnal cycle with 10-12°C amplitude
+    \item Temperature peak: 14:00-16:00 local time
+    \item Temperature minimum: 06:00-07:00 (before sunrise)
+    \item Weekly variations associated with synoptic systems
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{data_analysis/05_Humidity_Sensors_Comparison_September_2025_Vitória_da_Conquista.png}
+    \caption{Humidity time series (September 2025)}
+    \label{fig:humid_ts}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{data_analysis/05_Pressure_Sensors_Comparison_September_2025_Vitória_da_Conquista.png}
+    \caption{Barometric pressure time series (September 2025)}
+    \label{fig:press_ts}
+\end{figure}
+
+\textbf{Pressure observations:}
+\begin{itemize}
+    \item Oscillations of 10-12 hPa throughout the month
+    \item Variations follow frontal passages
+    \item Average pressure of 920 hPa (consistent with altitude)
+\end{itemize}
+
+\subsection{Notebook 06: Time Series Decomposition}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{data_analysis/06_Time_Series_Decomposition_plot_01.png}
+    \caption{Time series decomposition - Temperature}
+    \label{fig:decomp_temp}
+\end{figure}
+
+\textbf{Identified components:}
+\begin{itemize}
+    \item \textbf{Trend:} Slight warming until mid-September, then cooling
+    \item \textbf{Seasonal:} Strong 24-hour periodicity
+    \item \textbf{Residuals:} Clean with few anomalies
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{data_analysis/06_Time_Series_Decomposition_plot_03.png}
+    \caption{Time series decomposition - Humidity}
+    \label{fig:decomp_humid}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{data_analysis/06_Time_Series_Decomposition_plot_05.png}
+    \caption{Time series decomposition - Pressure}
+    \label{fig:decomp_press}
+\end{figure}
+
+\section{Module 2: Machine Learning (Notebooks 07-11)}
+
+\subsection{Notebook 07: Anomaly Detection}
+
+\subsubsection{Isolation Forest}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{machine_learning/07_Isolation_Forest_Anomaly_Detection_Across_All_Sensors.png}
+    \caption{Anomaly detection via Isolation Forest (all sensors)}
+    \label{fig:isolation_forest}
+\end{figure}
+
+\textbf{Results:}
+\begin{itemize}
+    \item \textbf{3.2\% of measurements} classified as anomalies
+    \item Anomalies concentrated in specific time windows
+    \item Successful isolation of instrumental failures
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{machine_learning/07_Heatmap_Sensor_Deviations_in_Detected_AnomaliesnRed_High_deviation_Green_Normal_showing_50_random_anomalies.png}
+    \caption{Heatmap of sensor deviations in detected anomalies}
+    \label{fig:anomaly_heatmap}
+\end{figure}
+
+\textbf{Deviation analysis:}
+\begin{itemize}
+    \item Red: High divergence from the mean
+    \item Green: Normal behavior
+    \item Identification of which sensors deviated during anomalies
+\end{itemize}
+
+\subsubsection{Frozen Value Detection}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{machine_learning/07_Stuck_Values_Detection_Δ_001C.png}
+    \caption{Detection of frozen values (sensor freezes, $\Delta < 0.01$°C)}
+    \label{fig:stuck_values}
+\end{figure}
+
+\textbf{Detection criteria:}
+\begin{itemize}
+    \item Identification of measurements where $\Delta < 0.01$°C for >10 minutes
+    \item Detection of temporary sensor failures
+    \item Validation of the need for multi-sensor redundancy
+\end{itemize}
+
+\subsection{Notebook 08: Decision Tree Regression}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{machine_learning/08_Decision_Tree_Temperature_Prediction_All_Sensors_Average_September_2025_Analysis_in_Vitória_da_Conquista.png}
+    \caption{Decision tree structure for temperature prediction}
+    \label{fig:decision_tree}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{machine_learning/08_Which_Variable_Most_Influences_the_Analysis_Vitória_da_Conquista_September_2025.png}
+    \caption{Feature importance for temperature prediction}
+    \label{fig:feature_importance}
+\end{figure}
+
+\textbf{Most important features:}
+\begin{itemize}
+    \item AHT20 and BMP280 among the main predictors
+    \item Humidity has strong predictive power for temperature
+    \item Model presents interpretable rules
+\end{itemize}
+
+\subsection{Notebook 09: Clustering with Gaussian Mixture Model (GMM)}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{machine_learning/09_Gaussian_Mixture_Clustering_plot_01.png}
+    \caption{GMM Clustering - 2D visualization (K=4 climate regimes)}
+    \label{fig:gmm_2d}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{machine_learning/09_3D_Climate_Clustering_GMM_K4nVitória_da_Conquista_September_2025.png}
+    \caption{GMM Clustering - 3D visualization (Temperature, Humidity, Pressure)}
+    \label{fig:gmm_3d}
+\end{figure}
+
+\textbf{4 identified climate regimes:}
+\begin{enumerate}
+    \item \textbf{Cluster 1 (Blue):} Cold-Humid (nighttime with fog)
+    \item \textbf{Cluster 2 (Orange):} Hot-Dry (afternoon with maximums)
+    \item \textbf{Cluster 3 (Green):} Morning transition (progressive warming)
+    \item \textbf{Cluster 4 (Red):} Evening transition (cooling)
+\end{enumerate}
+
+\subsection{Notebook 10: Clustering with KMeans}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{machine_learning/10_KMeans_Clustering_plot_01.png}
+    \caption{KMeans clustering - 2D visualization (K=4)}
+    \label{fig:kmeans_2d}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{machine_learning/10_3D_Climate_Clustering_K_Means_K4nVitória_da_Conquista_September_2025.png}
+    \caption{KMeans clustering - 3D visualization}
+    \label{fig:kmeans_3d}
+\end{figure}
+
+\textbf{Consistency between methods:}
+\begin{itemize}
+    \item KMeans validates the 4 climate states identified by GMM
+    \item Well-separated clusters in three-dimensional space
+    \item Confirmation of climate patterns throughout September
+\end{itemize}
+
+\subsection{Notebook 11: Prediction with LSTM Neural Networks}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{machine_learning/11_Error_Evolution_During_Training.png}
+    \caption{Error evolution during LSTM model training}
+    \label{fig:lstm_loss}
+\end{figure}
+
+\textbf{Model characteristics:}
+\begin{itemize}
+    \item LSTM architecture with 30-minute time window
+    \item Convergence observed after ~50 epochs
+    \item Consistent reduction of training and validation error
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{machine_learning/11_Real_Temperature_vs_Model_Prediction_Vitória_da_Conquista_in_the_Last_Week_of_September_2025.png}
+    \caption{Real Temperature vs LSTM Predictions (last week of September 2025)}
+    \label{fig:lstm_predictions}
+\end{figure}
+
+\textbf{Model performance:}
+\begin{itemize}
+    \item \textbf{MAE < 1°C} for 1-hour ahead prediction
+    \item Model accurately captures diurnal patterns
+    \item Predictions fit real temperatures in the validation period
+    \item Temporal dependencies effectively captured
+\end{itemize}
+
+\section{Module 3: Digital Signal Processing (Notebooks 12-13)}
+
+\subsection{Notebook 12: Digital Filters}
+
+\subsubsection{Filter Comparison - Temperature}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{signal_processing/12_Temperature_Analysis_Panel_Complete_View_Raw_vs_FilterednVitoria_da_Conquista_September_2025_1.png}
+    \caption{Comparison of digital filters - Temperature Sensor 1 (Moving Average)}
+    \label{fig:temp_filter_ma_1}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{signal_processing/12_Temperature_Analysis_Panel_Complete_View_Raw_vs_FilterednVitoria_da_Conquista_September_2025_2.png}
+    \caption{Comparison of digital filters - Temperature Sensor 2 (Moving Average)}
+    \label{fig:temp_filter_ma_2}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{signal_processing/12_Temperature_Analysis_Panel_Complete_View_Raw_vs_FilterednVitoria_da_Conquista_September_2025_3.png}
+    \caption{Comparison of digital filters - Temperature Sensor 3 (Moving Average)}
+    \label{fig:temp_filter_ma_3}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{signal_processing/12_Temperature_Analysis_Panel_Complete_View_Raw_vs_FilterednVitoria_da_Conquista_September_2025_4.png}
+    \caption{Comparison of digital filters - Temperature Sensor 4 (Moving Average)}
+    \label{fig:temp_filter_ma_4}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{signal_processing/12_Temperature_Analysis_Panel_Complete_View_Raw_vs_FilterednVitoria_da_Conquista_September_2025_5.png}
+    \caption{Comparison of digital filters - Temperature Sensor 5 (Moving Average)}
+    \label{fig:temp_filter_ma_5}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{signal_processing/12_Temperature_Analysis_Panel_Complete_View_Raw_vs_FilterednVitoria_da_Conquista_September_2025_6.png}
+    \caption{Comparison of digital filters - Temperature Sensor 6 (Moving Average)}
+    \label{fig:temp_filter_ma_6}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{signal_processing/12_Temperature_Analysis_Panel_Complete_View_Raw_vs_FilterednVitoria_da_Conquista_September_2025_7.png}
+    \caption{Comparison of digital filters - Temperature Sensor 7 (Moving Average)}
+    \label{fig:temp_filter_ma_7}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{signal_processing/12_Temperature_Analysis_Panel_Complete_View_Raw_vs_Median_FilterednVitoria_da_Conquista_September_2025_1.png}
+    \caption{Comparison of digital filters - Temperature Sensor 1 (Median)}
+    \label{fig:temp_filter_median_1}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{signal_processing/12_Temperature_Analysis_Panel_Complete_View_Raw_vs_Median_FilterednVitoria_da_Conquista_September_2025_2.png}
+    \caption{Comparison of digital filters - Temperature Sensor 2 (Median)}
+    \label{fig:temp_filter_median_2}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{signal_processing/12_Temperature_Analysis_Panel_Complete_View_Raw_vs_Median_FilterednVitoria_da_Conquista_September_2025_3.png}
+    \caption{Comparison of digital filters - Temperature Sensor 3 (Median)}
+    \label{fig:temp_filter_median_3}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{signal_processing/12_Temperature_Analysis_Panel_Complete_View_Raw_vs_Median_FilterednVitoria_da_Conquista_September_2025_4.png}
+    \caption{Comparison of digital filters - Temperature Sensor 4 (Median)}
+    \label{fig:temp_filter_median_4}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{signal_processing/12_Temperature_Analysis_Panel_Complete_View_Raw_vs_Median_FilterednVitoria_da_Conquista_September_2025_5.png}
+    \caption{Comparison of digital filters - Temperature Sensor 5 (Median)}
+    \label{fig:temp_filter_median_5}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{signal_processing/12_Temperature_Analysis_Panel_Complete_View_Raw_vs_Median_FilterednVitoria_da_Conquista_September_2025_6.png}
+    \caption{Comparison of digital filters - Temperature Sensor 6 (Median)}
+    \label{fig:temp_filter_median_6}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{signal_processing/12_Temperature_Analysis_Panel_Complete_View_Raw_vs_Median_FilterednVitoria_da_Conquista_September_2025_7.png}
+    \caption{Comparison of digital filters - Temperature Sensor 7 (Median)}
+    \label{fig:temp_filter_median_7}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{signal_processing/12_Temperature_Analysis_Panel_Complete_View_Raw_vs_EWMA_FilterednVitoria_da_Conquista_September_2025_1.png}
+    \caption{Comparison of digital filters - Temperature Sensor 1 (EWMA)}
+    \label{fig:temp_filter_ewma_1}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{signal_processing/12_Temperature_Analysis_Panel_Complete_View_Raw_vs_EWMA_FilterednVitoria_da_Conquista_September_2025_2.png}
+    \caption{Comparison of digital filters - Temperature Sensor 2 (EWMA)}
+    \label{fig:temp_filter_ewma_2}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{signal_processing/12_Temperature_Analysis_Panel_Complete_View_Raw_vs_EWMA_FilterednVitoria_da_Conquista_September_2025_3.png}
+    \caption{Comparison of digital filters - Temperature Sensor 3 (EWMA)}
+    \label{fig:temp_filter_ewma_3}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{signal_processing/12_Temperature_Analysis_Panel_Complete_View_Raw_vs_EWMA_FilterednVitoria_da_Conquista_September_2025_4.png}
+    \caption{Comparison of digital filters - Temperature Sensor 4 (EWMA)}
+    \label{fig:temp_filter_ewma_4}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{signal_processing/12_Temperature_Analysis_Panel_Complete_View_Raw_vs_EWMA_FilterednVitoria_da_Conquista_September_2025_5.png}
+    \caption{Comparison of digital filters - Temperature Sensor 5 (EWMA)}
+    \label{fig:temp_filter_ewma_5}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{signal_processing/12_Temperature_Analysis_Panel_Complete_View_Raw_vs_EWMA_FilterednVitoria_da_Conquista_September_2025_6.png}
+    \caption{Comparison of digital filters - Temperature Sensor 6 (EWMA)}
+    \label{fig:temp_filter_ewma_6}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{signal_processing/12_Temperature_Analysis_Panel_Complete_View_Raw_vs_EWMA_FilterednVitoria_da_Conquista_September_2025_7.png}
+    \caption{Comparison of digital filters - Temperature Sensor 7 (EWMA)}
+    \label{fig:temp_filter_ewma_7}
+\end{figure}
+
+\subsubsection{Filter Comparison - Humidity}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{signal_processing/12_Humidity_Analysis_Panel_Complete_View_Raw_vs_FilterednVitoria_da_Conquista_September_2025_1.png}
+    \caption{Comparison of digital filters - Humidity Sensor 1 (Moving Average)}
+    \label{fig:humid_filter_ma_1}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{signal_processing/12_Humidity_Analysis_Panel_Complete_View_Raw_vs_FilterednVitoria_da_Conquista_September_2025_2.png}
+    \caption{Comparison of digital filters - Humidity Sensor 2 (Moving Average)}
+    \label{fig:humid_filter_ma_2}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{signal_processing/12_Humidity_Analysis_Panel_Complete_View_Raw_vs_Median_FilterednVitoria_da_Conquista_September_2025_1.png}
+    \caption{Comparison of digital filters - Humidity Sensor 1 (Median)}
+    \label{fig:humid_filter_median_1}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{signal_processing/12_Humidity_Analysis_Panel_Complete_View_Raw_vs_Median_FilterednVitoria_da_Conquista_September_2025_2.png}
+    \caption{Comparison of digital filters - Humidity Sensor 2 (Median)}
+    \label{fig:humid_filter_median_2}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{signal_processing/12_Humidity_Analysis_Panel_Complete_View_Raw_vs_EWMA_FilterednVitoria_da_Conquista_September_2025_1.png}
+    \caption{Comparison of digital filters - Humidity Sensor 1 (EWMA)}
+    \label{fig:humid_filter_ewma_1}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{signal_processing/12_Humidity_Analysis_Panel_Complete_View_Raw_vs_EWMA_FilterednVitoria_da_Conquista_September_2025_2.png}
+    \caption{Comparison of digital filters - Humidity Sensor 2 (EWMA)}
+    \label{fig:humid_filter_ewma_2}
+\end{figure}
+
+\subsubsection{Filter Comparison - Pressure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{signal_processing/12_Pressure_Analysis_Panel_Complete_View_Raw_vs_FilterednVitoria_da_Conquista_September_2025_1.png}
+    \caption{Comparison of digital filters - Pressure Sensor 1 (Moving Average)}
+    \label{fig:press_filter_ma_1}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{signal_processing/12_Pressure_Analysis_Panel_Complete_View_Raw_vs_FilterednVitoria_da_Conquista_September_2025_2.png}
+    \caption{Comparison of digital filters - Pressure Sensor 2 (Moving Average)}
+    \label{fig:press_filter_ma_2}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{signal_processing/12_Pressure_Analysis_Panel_Complete_View_Raw_vs_Median_FilterednVitoria_da_Conquista_September_2025_1.png}
+    \caption{Comparison of digital filters - Pressure Sensor 1 (Median)}
+    \label{fig:press_filter_median_1}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{signal_processing/12_Pressure_Analysis_Panel_Complete_View_Raw_vs_Median_FilterednVitoria_da_Conquista_September_2025_2.png}
+    \caption{Comparison of digital filters - Pressure Sensor 2 (Median)}
+    \label{fig:press_filter_median_2}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{signal_processing/12_Pressure_Analysis_Panel_Complete_View_Raw_vs_EWMA_FilterednVitoria_da_Conquista_September_2025_1.png}
+    \caption{Comparison of digital filters - Pressure Sensor 1 (EWMA)}
+    \label{fig:press_filter_ewma_1}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{signal_processing/12_Pressure_Analysis_Panel_Complete_View_Raw_vs_EWMA_FilterednVitoria_da_Conquista_September_2025_2.png}
+    \caption{Comparison of digital filters - Pressure Sensor 2 (EWMA)}
+    \label{fig:press_filter_ewma_2}
+\end{figure}
+
+\textbf{Digital filtering results:}
+\begin{itemize}
+    \item \textbf{Median Filter:} Best noise suppression without phase lag
+    \item \textbf{EWMA:} Smooth transitions, preserves trends
+    \item \textbf{Moving Average:} Trade-off between smoothing and responsiveness
+    \item Complete panels with raw, filtered signal, zoom, and frequency spectrum
+\end{itemize}
+
+\subsection{Notebook 13: Frequency Analysis (FFT)}
+
+\textbf{Note:} FFT analyses were integrated into the digital filter panels (Notebook 12), showing the power spectrum of each signal before and after filtering.
+
+\textbf{Spectral analysis results:}
+\begin{itemize}
+    \item \textbf{Primary peak:} 23-hour periodicity (diurnal cycle)
+    \item Clear spectral signature of daily heating/cooling cycle
+    \item Validation of the adequacy of the 30-second sampling interval
+\end{itemize}
+
+\section{Public Dataset}
+
+The complete dataset was made publicly available on Kaggle:
+
+\begin{itemize}
+    \item \textbf{Title:} ``Vitória da Conquista Weather Data - September 2025''
+    \item \textbf{URL:} \url{https://www.kaggle.com/datasets/jonassouza872/vitoria-da-conquista-weather-data-september}
+    \item \textbf{Records:} 82,430 measurements
+    \item \textbf{Format:} CSV with 12 environmental variables
+    \item \textbf{License:} Free, public access for download
+\end{itemize}
+
+\section{Repository Structure}
+
+\begin{verbatim}
+PolySense-Station-/
+|-- main.py                          # 226 lines MicroPython
+|-- requirements.txt                 # Python dependencies
+|-- lib/                             # MicroPython drivers (9 files)
+|-- notebooks/                       # 13 analysis notebooks
+|   |-- 01_exploratory_analysis.ipynb
+|   |-- 02_correlation_analysis.ipynb
+|   |-- 03_missing_data.ipynb
+|   |-- 04_sensor_validation.ipynb
+|   |-- 05_temporal_analysis.ipynb
+|   |-- 06_time_series_decomposition.ipynb
+|   |-- 07_anomaly_detection.ipynb
+|   |-- 08_decision_tree_regression.ipynb
+|   |-- 09_gmm_clustering.ipynb
+|   |-- 10_kmeans_clustering.ipynb
+|   |-- 11_lstm_prediction.ipynb
+|   |-- 12_digital_filters.ipynb
+|   |-- 13_fft_analysis.ipynb
+|-- data/raw/                        # 4 CSV files (4.8 MB total)
+|   |-- climate_clusters_gmm.csv     # 82,430 records
+|   |-- validation_data_cleaned_BRT.csv
+|   |-- validation_and_Measured_Data_cleaned_BRT_.csv
+|   |-- inmet_weather_station_data_sep_2025_utc.csv
+|-- images/                          # 111 generated visualizations
+|   |-- data_analysis/               # EDA, correlation, validation
+|   |-- machine_learning/            # Clustering, anomalies, regression
+|   |-- signal_processing/           # Filter comparisons, FFT
+|-- PCB/                             # Custom PCB design
+|-- Schematic/                       # Hardware schematics
+|-- README.md                        # Complete documentation
+\end{verbatim}
+
+\section{Conclusions}
+
+\subsection{Main Achievements}
+
+\begin{enumerate}
+    \item \textbf{Functional collection system:} 100\% success over 30 days (82,430 records at 30s interval)
+
+    \item \textbf{Effective sensor redundancy:} 7 temperature sensors, 2 humidity, 2 pressure with >99.9\% completeness
+
+    \item \textbf{Validation against reference:} Mean bias < 2°C compared to official INMET station
+
+    \item \textbf{Exceptional correlation:} r > 0.98 between redundant sensors
+
+    \item \textbf{Anomaly detection:} 3.2\% outliers successfully isolated with Isolation Forest
+
+    \item \textbf{Accurate prediction:} MAE < 1°C for 1-hour ahead temperature prediction with LSTM
+
+    \item \textbf{Climate clustering:} 4 distinct regimes identified and validated (GMM and KMeans)
+
+    \item \textbf{Spectral analysis:} Clear 24h periodicity confirmed via FFT
+
+    \item \textbf{Public dataset:} 82,430 measurements available on Kaggle for the scientific community
+\end{enumerate}
+
+\subsection{Study Limitations}
+
+\begin{itemize}
+    \item Data collection limited to 30 days (September 2025)
+    \item Lack of direct solar radiation measurement
+    \item Temporal granularity of 30 seconds (does not capture very fast events)
+    \item External factors not considered (detailed cloud cover, local wind)
+    \item Validation limited to one season
+\end{itemize}
+
+\subsection{Future Work}
+
+\begin{enumerate}
+    \item Expand collection to 12 months (complete seasonal analysis)
+    \item Add solar radiation sensor (pyranometer)
+    \item Implement anemometer for wind speed and direction
+    \item Develop PCB version 2 with identified improvements
+    \item Integrate data transmission via LoRaWAN
+    \item Implement edge computing with real-time LSTM predictions
+    \item Comparative analysis between multiple stations at different altitudes
+    \item Develop REST API for real-time data access
+\end{enumerate}
+
+\section{References}
+
+\begin{itemize}
+    \item \textbf{Microcontroller:} Raspberry Pi Pico (RP2040), MicroPython Documentation
+    \item \textbf{Reference station:} INMET - National Institute of Meteorology
+    \item \textbf{Dataset:} \url{https://www.kaggle.com/datasets/jonassouza872/vitoria-da-conquista-weather-data-september}
+    \item \textbf{Period:} 08/31/2025 - 09/30/2025 (82,430 records)
+    \item \textbf{Python libraries:} Pandas, NumPy, Matplotlib, Seaborn, Scikit-learn, TensorFlow, SciPy
+    \item \textbf{ML techniques:} Isolation Forest, Decision Tree, KMeans, GMM, LSTM
+    \item \textbf{Signal processing:} FFT, Digital filters (Moving average, Median, EWMA)
+\end{itemize}
+
+\end{document}
